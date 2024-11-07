@@ -1,0 +1,35 @@
+pipeline {
+    agent any
+
+    environment {
+        // Define environment variables for authentication and Azure DevOps details
+        AZURE_ORG = ''
+        AZURE_PROJECT = ''
+        AZURE_REPO = ''
+        AZURE_PAT = '' // This should be the Jenkins credentials ID for your Personal Access Token
+    }
+
+    stages {
+        stage('Get Default Branch') {
+            steps {
+                script {
+                    // Retrieve the Azure PAT from Jenkins credentials
+                    withCredentials([string(credentialsId: AZURE_PAT, variable: 'PAT_TOKEN')]) {
+                        // Call Azure DevOps REST API to get the repository details
+                        def response = sh(script: """
+                            curl -s -u ${PAT_TOKEN} \\
+                            -H "Content-Type: application/json" \\
+                            "https://dev.azure.com/${AZURE_ORG}/${AZURE_PROJECT}/_apis/git/repositories/${AZURE_REPO}?api-version=7.1-preview.1"
+                        """, returnStdout: true).trim()
+
+                        // Parse the JSON response to extract the default branch
+                        def json = readJSON(text: response)
+                        def defaultBranch = json['defaultBranch'].replaceFirst('refs/heads/', '')
+
+                        echo "Default Branch: ${defaultBranch}"
+                    }
+                }
+            }
+        }
+    }
+}
