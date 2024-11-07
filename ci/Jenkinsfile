@@ -22,6 +22,12 @@ pipeline {
                             "https://dev.azure.com/${AZURE_ORG}/${AZURE_PROJECT}/_apis/git/repositories/${AZURE_REPO}?api-version=7.1-preview.1"
                         """, returnStdout: true).trim()
 
+                        def response = sh(script: """
+                            curl -s -u "${AZURE_PAT}" \\
+                            -H "Content-Type: application/json" \\
+                            "https://dev.azure.com/${AZURE_ORG}/${AZURE_PROJECT}/_apis/git/repositories/${AZURE_REPO}?api-version=7.1-preview.1"
+                        """, returnStdout: true).trim()
+                        
                         // Parse the JSON response to extract the default branch
                         def json = readJSON(text: response)
                         def defaultBranch = json['defaultBranch'].replaceFirst('refs/heads/', '')
