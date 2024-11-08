@@ -34,6 +34,22 @@ pipeline {
 
                         echo "Default Branch: ${defaultBranch}"
                     }
+
+                    withCredentials([string(credentialsId: AZURE_PAT, variable: 'PAT_TOKEN')]) {
+                        // Call Azure DevOps REST API to get PR details
+                        def response = sh(script: """
+                            curl -s -u ${PAT_TOKEN}: \\
+                            -H "Content-Type: application/json" \\
+                            "https://dev.azure.com/${AZURE_ORG}/${AZURE_PROJECT}/_apis/git/repositories/${AZURE_REPO}/pullRequests/${PR_NUMBER}?api-version=7.1-preview.1"
+                        """, returnStdout: true).trim()
+
+                        // Parse the JSON response to extract the source and target branches
+                        def json = readJSON(text: response)
+                        def sourceBranch = json['sourceRefName'].replaceFirst('refs/heads/', '')
+                        def targetBranch = json['targetRefName'].replaceFirst('refs/heads/', '')
+
+                        echo "Source Branch: ${sourceBranch}, Target Branch: ${targetBranch}"
+                    }
                 }
             }
         }
